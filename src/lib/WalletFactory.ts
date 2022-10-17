@@ -23,8 +23,17 @@ export class WalletFactory {
         return new Wallet(XrplWallet.generate(algorithm))
     }
 
+    /**
+     * This method only generates a wallet with the masterAddress. It is good enough to use for account
+     * addressing, such as sending or naming a currency issuer.
+     * @param masterAddress
+     */
     static fromAddress(masterAddress: string): Wallet {
         return new Wallet(new XrplWallet("bogus", "bogus", {masterAddress: masterAddress}))
+    }
+
+    static fromAddressAndKey(masterAddress: string, public_key: string): Wallet {
+        return new Wallet(new XrplWallet(public_key, "bogus", {masterAddress: masterAddress}))
     }
 
     static fromSeed(seed: string, opts?: DeriveWalletOptions): Wallet {
