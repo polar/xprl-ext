@@ -1,14 +1,14 @@
-import {Client, OfferCreate, SubmitResponse, TransactionStream, TxResponse} from "xrpl";
-import {TestingAccountFactory} from "./TestingAccountFactory";
-import {XRPCurrencyIssuer} from "../lib/XRPCurrencyIssuer";
-import {Account} from "../lib/Account";
-import {CurrencyIssuerAccount} from "../lib/CurrencyIssuerAccount";
-import {TransactionProcessor} from "../lib/TransactionProcessor";
+import {Client, OfferCreate, TransactionStream, TxResponse} from "xrpl";
+import {TestingAccountFactory} from "../support/TestingAccountFactory";
+import {XRPCurrencyIssuer} from "../../src/lib/XRPCurrencyIssuer";
+import {Account} from "../../src/lib/Account";
+import {CurrencyIssuerAccount} from "../../src/lib/CurrencyIssuerAccount";
+import {TransactionProcessor} from "../../src/lib/TransactionProcessor";
 
 jest.setTimeout(1000000000)
 function log<T>(obj:T) : T { console.log(JSON.stringify(obj,null,2)); return obj}
 let api = new Client("wss://s.altnet.rippletest.net:51233")
-let af = new TestingAccountFactory({api:api, defaultAccountDirectory: "./accounts"})
+let af = new TestingAccountFactory({api:api, defaultAccountDirectory: "./test-run/accounts"})
 let XRP = new XRPCurrencyIssuer()
 let bob : Account
 let carol : Account
@@ -26,6 +26,7 @@ async function sleep(msec: number) {
 
 beforeAll( async () => {
     await api.connect()
+    await af.ensureDefaultAccountDirectory()
     bob = await af.getTestAccount("bob", 1000) as Account
     carol = await af.getTestAccount("carol", 1000) as Account
     let sht = await af.getTestAccount("SHT", 1000) as Account
@@ -57,7 +58,7 @@ describe("Cross Offer", () => {
         let carolOffer = carolResponse.result as OfferCreate
         tp.addOffer(carolOffer)
         let allEvents : TransactionStream[] = []
-        while(allEvents.length != 2) {
+        while(allEvents.length < 2) {
             while(events.length > 0) {
                 let event = events.pop()
                 if (event) {
@@ -103,5 +104,7 @@ describe("Cross Offer", () => {
         expect(carR!.curDiff.eq(bobR!.curDiff.negate()))
         expect(carR!.xrpDiff.eq(Number(xrpDrops) - 12))
         expect(bobR!.xrpDiff.eq(Number(xrpDrops) - 12))
+
+        log(tp.getAllOffers())
     })
 })

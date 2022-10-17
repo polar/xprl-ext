@@ -1,5 +1,5 @@
-import {AccountDelete, Client} from "xrpl";
-import {WalletFactory} from "../lib/WalletFactory";
+import {AccountDelete} from "xrpl";
+import {WalletFactory} from "../../src/lib/WalletFactory";
 
 
 describe("Wallet Factory", () => {

@@ -1,18 +1,13 @@
-
-import {Wallet} from "../lib/Wallet";
-import {Account} from "../lib/Account";
-import {CurrencyIssuer} from "../lib/CurrencyIssuer";
-import {AccountFactory, AccountFactoryProps} from "../lib/AccountFactory";
-import {WalletFactory} from "../lib/WalletFactory";
-import {constants as FsConstants, promises as fs} from "fs";
-import {log} from "../lib/Logger";
-import {CurrencyIssuerAccount} from "../lib/CurrencyIssuerAccount";
-import {Rational, RationalNumber} from "../lib/Rational";
-import {XRPCurrencyIssuer} from "../lib/XRPCurrencyIssuer";
-import {FileAccountFactory, FileAccountFactoryProps} from "../lib/FileAccountFactory";
-import {IssuedCurrency} from "../lib/PassiveAccountI";
+import {Wallet} from "../../src/lib/Wallet";
+import {Account} from "../../src/lib/Account";
+import {CurrencyIssuer} from "../../src/lib/CurrencyIssuer";
+import {WalletFactory} from "../../src/lib/WalletFactory";
+import {log} from "../../src/lib/Logger";
+import {CurrencyIssuerAccount} from "../../src/lib/CurrencyIssuerAccount";
+import {Rational, RationalNumber} from "../../src/lib/Rational";
+import {XRPCurrencyIssuer} from "../../src/lib/XRPCurrencyIssuer";
+import {FileAccountFactory, FileAccountFactoryProps} from "../../src/lib/FileAccountFactory";
 import {IssuedCurrencyAmount} from "xrpl/dist/npm/models/common";
-
 
 export class TestingAccountFactory extends FileAccountFactory {
 

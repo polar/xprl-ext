@@ -1,5 +1,4 @@
 import {Account} from "./Account";
-import {AccountProps} from "./AccountProps";
 import {BookOffersResponse, Client, SubmitResponse, Transaction, TxResponse} from "xrpl";
 import {CurrencyIssuer} from "./CurrencyIssuer";
 import {CurrencyTrader} from "./CurrencyTrader";
@@ -7,15 +6,11 @@ import {PassiveAccountI} from "./PassiveAccountI";
 import {Spread} from "./Spread";
 import {Rational, RationalNumber} from "./Rational";
 import {CurrencyTraderPassiveAccount} from "./CurrencyTraderPassiveAccount";
-
-export interface TraderAccountProps extends AccountProps {
-    currencyIssuer: CurrencyIssuer
-}
+import {TraderAccountProps} from "./TraderAccountProps";
 
 function roundToPrecision(amt: number, prec: number = 1e6) {
     return Math.round(amt * prec) / prec
 }
-
 
 export class CurrencyTraderAccount extends Account implements CurrencyTrader {
 

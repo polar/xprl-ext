@@ -43,6 +43,18 @@ export class OfferResult {
      * by events added by processTransactionStream.
      */
     deleted = false
+
+    get key() {
+        return BookOffers.key((this.originalOffer?.transaction || this.transactions[0]!.transaction))
+    }
+
+    toJSON() {
+        return {
+            key: BookOffers.key((this.originalOffer?.transaction || this.transactions[0]!.transaction)),
+            originalOffer: this.originalOffer,
+            transactions: this.transactions
+        }
+    }
 }
 
 class BookOffers {
@@ -73,6 +85,17 @@ class BookOffers {
             this.offers.set(BookOffers.key(offer.transaction), offerE)
         }
         offerE.transactions.push(offer)
+        return offerE
+    }
+
+    internalAddOffer2(offer: OfferLike, event: OfferCreateAndMetaData) {
+        let offerE = this.offers.get(BookOffers.key(offer))
+        if (!offerE) {
+            offerE = new OfferResult()
+            this.offers.set(BookOffers.key(offer), offerE)
+        }
+        offerE.transactions.push(event)
+        return offerE
     }
 
     getOffer(accountOrOffer: OfferLike | string, sequence?: number) {
@@ -110,6 +133,24 @@ class BookOffers {
             let offer = this.offers.get(BookOffers.key(accountOrOffer as OfferLike))
             this.offers.delete(key)
         }
+    }
+
+    clear() {
+        this.offers.clear()
+    }
+
+    clearNonOwnOffers() {
+        let new_offers = new Map<string, OfferResult>()
+        this.offers.forEach((v,k) => {
+            if (v.originalOffer) {
+                new_offers.set(k,v)
+            }
+        })
+        this.offers = new_offers
+    }
+
+    getValues() {
+        return Array.from(this.offers.values()).map((v) => v.toJSON())
     }
 }
 
@@ -153,6 +194,28 @@ export class TransactionProcessor {
      */
     addOffer(offer: OfferLike & {meta?: TransactionMetadata}) {
         this.offers.addOffer(offer)
+    }
+
+    /**
+     * This operation clears all overs from the TransactionProcessor. Note, this is only used
+     * to reset. You may get notifications to add to the TransactionProcess while you do this
+     * destroying your own entries added with addOffer.
+     */
+    clearOffers() {
+        this.offers.clear()
+    }
+
+    getAllOffers() {
+        return this.offers.getValues()
+    }
+
+    /**
+     * This method is meant to be used for a cleanup operation to get rid of irrelevant stuff
+     * that may have been picked up in your subscribe. It gets rid of all transactions that
+     * have not had been placed in a addOffer().
+     */
+    clearNonOwnOffers() {
+        this.offers.clearNonOwnOffers()
     }
 
     /**
@@ -217,26 +280,22 @@ export class TransactionProcessor {
         let affectedNodes = offerCreateAndMeta.meta.AffectedNodes
         let offerCreate = offerCreateAndMeta.transaction
         let bsp = this.offers.getOffer(offerCreate)
-        if (bsp) {
-            log({processOfferCreate: offerCreateAndMeta})
-            this.processCreatedNodes(affectedNodes, offerCreateAndMeta);
+        if (!bsp) {
+            bsp = this.offers.internalAddOffer(offerCreateAndMeta)
+        }
+        log({processOfferCreate: offerCreateAndMeta})
+        this.processCreatedNodes(affectedNodes, offerCreateAndMeta);
 
-            // The real work is in the AffectedNodes
+        // The real work is in the AffectedNodes
 
-            this.processDeletedNodes(affectedNodes, offerCreateAndMeta)
-            this.processOwnModifiedOffers(affectedNodes, offerCreateAndMeta)
-            let ownEventTransaction =
-                this.addresses.some(a => a === (offerCreate).Account)
-            if (ownEventTransaction) {
-                // This would be the case should the buy/sell offer be fully crossed and not created.
-                this.processOtherModifiedOffers(affectedNodes, offerCreateAndMeta)
-                this.processOffer(offerCreate, offerCreateAndMeta)
-            }
-        } else {
-            log({
-                message: "processOfferCreate: Not our transaction or already processed",
-                sequence: offerCreateAndMeta.transaction.Sequence
-            })
+        this.processDeletedNodes(affectedNodes, offerCreateAndMeta)
+        this.processOwnModifiedOffers(affectedNodes, offerCreateAndMeta)
+        let ownEventTransaction =
+            this.addresses.some(a => a === (offerCreate).Account)
+        if (ownEventTransaction) {
+            // This would be the case should the buy/sell offer be fully crossed and not created.
+            this.processOtherModifiedOffers(affectedNodes, offerCreateAndMeta)
+            this.processOffer(offerCreate, offerCreateAndMeta)
         }
     }
 
@@ -265,10 +324,12 @@ export class TransactionProcessor {
 
     private processDeletedOffer(offer: OfferLike, event: OfferCreateAndMetaData) {
         let bsp = this.offers.getOffer(offer)
-        if (bsp) {
+        if (!bsp) {
+            bsp = this.offers.internalAddOffer2(offer, event)
+        } else {
             bsp.transactions.push(event)
-            bsp.deleted = true
         }
+        bsp.deleted = true
     }
 
     private processOwnModifiedOffers(affectedNodes: Node[], event: OfferCreateAndMetaData)  : OfferResult | undefined {
@@ -319,7 +380,7 @@ export class TransactionProcessor {
      * OfferCancels will be processed and ignored.
      * @param event
      */
-    processTransactionStream(event: TransactionStream) {
+    processTransactionStream(event: TransactionStream | OfferCreateAndMetaData) {
         log({PROCESS_TRANSACTION_STREAM: event.transaction.Sequence})
         let affectedNodes = event.meta?.AffectedNodes
         if (event.transaction.TransactionType === "OfferCreate" && affectedNodes) {

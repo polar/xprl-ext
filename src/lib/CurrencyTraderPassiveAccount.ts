@@ -1,15 +1,12 @@
-import {AccountProps} from "./AccountProps";
 import {BookOffersResponse, Client, Transaction, TransactionAndMetadata, TransactionMetadata} from "xrpl";
 import {CurrencyIssuer} from "./CurrencyIssuer";
 import {CurrencyTraderPassive} from "./CurrencyTrader";
 import {PassiveAccount} from "./PassiveAccount";
 import {Spread} from "./Spread";
+import {TraderAccountProps} from "./TraderAccountProps";
 import {IssuedCurrencyAmount} from "xrpl/dist/npm/models/common";
 import {CurrencyTraderAccount} from "./CurrencyTraderAccount";
 
-export interface TraderAccountProps extends AccountProps {
-    currencyIssuer: CurrencyIssuer
-}
 
 export class CurrencyTraderPassiveAccount extends PassiveAccount implements CurrencyTraderPassive {
     currencyIssuer: CurrencyIssuer

@@ -1,5 +1,5 @@
 import {AccountBase} from "./AccountBase";
-import {Client, Wallet as XrpWallet} from "xrpl";
+import {Client} from "xrpl";
 import {Wallet} from "./Wallet";
 import {Account} from "./Account";
 import {CurrencyIssuerAccount} from "./CurrencyIssuerAccount";
@@ -8,11 +8,11 @@ import {PassiveAccount} from "./PassiveAccount";
 import {CurrencyIssuer} from "./CurrencyIssuer";
 import {CurrencyIssuerPassiveAccount} from "./CurrencyIssuerPassiveAccount";
 import {CrossCurrencyTraderAccount} from "./CrossCurrencyTrader";
-import {promises as fs} from "fs";
 import {CurrencyTraderPassiveAccount} from "./CurrencyTraderPassiveAccount";
 
 export type AccountFactoryProps = {
-    api: Client
+    api: Client,
+    noinit?: boolean
 }
 
 export type WalletOptions = {
@@ -29,21 +29,33 @@ export type AccountOptions = {
  */
 export class AccountFactory extends AccountBase {
     api: Client
+    defaultInit = false
 
     constructor(props: AccountFactoryProps) {
         super();
         this.api = props.api
+        this.defaultInit = !props.noinit
     }
 
+    private async internalInit(account: PassiveAccount | Account, opts? :{noinit: boolean }) {
+        if (opts) {
+            if (opts.noinit === true) {
+                return account
+            }
+        }
+        if (this.defaultInit)
+            return await account.init(this.api)
+        return account
+    }
     /**
      * This method creates a PassiveAccount with a wallet.
      * @param name
      * @param wallet
      * @param tag
      */
-    async createPassiveAccount(name: string, wallet: Wallet, tag?: number) {
-        let pa = await new PassiveAccount({name: name, wallet: wallet, tag: tag})
-        return await pa.init(this.api)
+    async createPassiveAccount(name: string, wallet: Wallet, tag?: number, opts?: {noinit: boolean }) {
+        let a = await new PassiveAccount({name: name, wallet: wallet, tag: tag})
+        return this.internalInit(a,opts)
     }
 
     /**
@@ -53,9 +65,12 @@ export class AccountFactory extends AccountBase {
      * @param wallet
      * @param tag
      */
-    async createAccount(name: string, wallet: Wallet, tag?: number) {
+    async createAccount(name: string, wallet: Wallet, tag?: number, opts?: {noinit: boolean }) {
         let a = await new Account({api: this.api, name: name, tag: tag, wallet: wallet})
-        return await a.init(this.api)
+        if (opts && !opts.noinit) {
+            return this.internalInit(a,opts)
+        }
+        return a
     }
 
     /**
@@ -64,13 +79,13 @@ export class AccountFactory extends AccountBase {
      * @param wallet
      * @param tag
      */
-    async create(name: string, wallet: Wallet, tag?: number) {
+    async create(name: string, wallet: Wallet, tag?: number, opts?: {noinit: boolean }) {
         if (!wallet.isSigning()) {
             let a = await new PassiveAccount({api: this.api, name: name, tag: tag, wallet: wallet})
-            return await a.init(this.api)
+            return this.internalInit(a,opts)
         } else {
             let a = await new Account({api: this.api, name: name, tag: tag, wallet: wallet})
-            return await a.init(this.api)
+            return this.internalInit(a,opts)
         }
     }
 
@@ -82,17 +97,17 @@ export class AccountFactory extends AccountBase {
      * @param wallet
      * @param tag
      */
-    async createCurrencyIssuer(name: string, currency: string, wallet: Wallet, tag?: number) {
+    async createCurrencyIssuer(name: string, currency: string, wallet: Wallet, tag?: number, opts?: {noinit: boolean }) {
         if (!wallet.isSigning()) {
             let cia = await new CurrencyIssuerPassiveAccount({
                 api: this.api, name: name, tag: tag, wallet: wallet, currency: currency
             })
-            return await cia.init(this.api) as CurrencyIssuer
+            return await this.internalInit(cia,opts) as unknown as CurrencyIssuer
         } else {
             let cia = await new CurrencyIssuerAccount({
                 api: this.api, name: name, tag: tag, wallet: wallet, currency: currency
             })
-            return await cia.init(this.api) as CurrencyIssuer
+            return await this.internalInit(cia,opts) as unknown as CurrencyIssuer
         }
     }
 
@@ -105,7 +120,7 @@ export class AccountFactory extends AccountBase {
      * @param wallet
      * @param tag
      */
-    async createCurrencyTrader(name: string, currencyAccount: CurrencyIssuer, wallet: Wallet, tag?: number) {
+    async createCurrencyTrader(name: string, currencyAccount: CurrencyIssuer, wallet: Wallet, tag?: number, opts?: {noinit: boolean }) {
         let cta = await new CurrencyTraderAccount({
             api: this.api,
             name: name,
@@ -113,7 +128,7 @@ export class AccountFactory extends AccountBase {
             currencyIssuer: currencyAccount,
             wallet: wallet
         })
-        return await cta.init(this.api) as CurrencyTraderAccount
+        return await this.internalInit(cta,opts) as unknown as CurrencyTraderAccount
     }
 
     /**
@@ -123,7 +138,7 @@ export class AccountFactory extends AccountBase {
      * @param account
      * @param currencyIssuer
      */
-    async getCurrencyTraderFromAccount(account: Account, currencyIssuer: CurrencyIssuer) {
+    async getCurrencyTraderFromAccount(account: Account, currencyIssuer: CurrencyIssuer, opts?: {noinit: boolean }) {
         let cta = await new CurrencyTraderAccount({
             name: account.name + ":" + currencyIssuer.currency,
             wallet: account.wallet,
@@ -132,7 +147,7 @@ export class AccountFactory extends AccountBase {
         })
         cta.sequencer = account.sequencer
         cta.txFactory = account.txFactory
-        return await cta.init(this.api!) as CurrencyTraderAccount
+        return await this.internalInit(cta,opts) as unknown as CurrencyTraderAccount
     }
 
     /**
@@ -142,7 +157,7 @@ export class AccountFactory extends AccountBase {
      * @param account
      * @param currencyIssuer
      */
-    async getCurrencyTraderFromPassiveAccount(account: PassiveAccount, currencyIssuer: CurrencyIssuer) {
+    async getCurrencyTraderFromPassiveAccount(account: PassiveAccount, currencyIssuer: CurrencyIssuer, opts?: {noinit: boolean }) {
         let cta = await new CurrencyTraderPassiveAccount({
             name: account.name + ":" + currencyIssuer.currency,
             wallet: account.wallet,
@@ -151,7 +166,7 @@ export class AccountFactory extends AccountBase {
         })
         cta.sequencer = account.sequencer
         cta.txFactory = account.txFactory
-        return await cta.init(this.api!) as CurrencyTraderPassiveAccount
+        return await this.internalInit(cta,opts) as unknown as CurrencyTraderPassiveAccount
     }
 
     /**
@@ -162,7 +177,7 @@ export class AccountFactory extends AccountBase {
      * @param west
      * @param east
      */
-    async getCrossCurrencyTraderFromAccount(account: Account, west: CurrencyIssuer, east: CurrencyIssuer) {
+    async getCrossCurrencyTraderFromAccount(account: Account, west: CurrencyIssuer, east: CurrencyIssuer, opts?: {noinit: boolean }) {
         let cta = await new CrossCurrencyTraderAccount({
             name: account.name + ":" + west.currency + "-" + east.currency,
             wallet: account.wallet,
@@ -172,7 +187,7 @@ export class AccountFactory extends AccountBase {
         })
         cta.sequencer = account.sequencer
         cta.txFactory = account.txFactory
-        return await cta.init(this.api!) as CrossCurrencyTraderAccount
+        return await this.internalInit(cta,opts) as unknown as CrossCurrencyTraderAccount
     }
 
     /**
@@ -181,7 +196,7 @@ export class AccountFactory extends AccountBase {
      * @param currency
      * @param defaultPrecision
      */
-    async getCurrencyIssuerFromAccount(account: PassiveAccount, currency: string, defaultPrecision = 1e6) {
+    async getCurrencyIssuerFromAccount(account: PassiveAccount, currency: string, defaultPrecision = 1e6, opts?: {noinit: boolean }) {
         if (account instanceof Account) {
             let cta = await new CurrencyIssuerAccount({
                 name: account.name + ":" + currency,
@@ -192,7 +207,7 @@ export class AccountFactory extends AccountBase {
             })
             cta.sequencer = account.sequencer
             cta.txFactory = account.txFactory
-            return await cta.init(this.api!) as CurrencyIssuerAccount
+            return await this.internalInit(cta,opts) as unknown as CurrencyIssuerAccount
         } else {
             let cta = await new CurrencyIssuerPassiveAccount({
                 name: account.name + ":" + currency,
@@ -203,7 +218,7 @@ export class AccountFactory extends AccountBase {
             })
             cta.sequencer = account.sequencer
             cta.txFactory = account.txFactory
-            return await cta.init(this.api!) as CurrencyIssuerPassiveAccount
+            return await this.internalInit(cta,opts) as unknown as CurrencyIssuerPassiveAccount
         }
     }
 
@@ -215,11 +230,11 @@ export class AccountFactory extends AccountBase {
      * @param wallet
      * @param tag
      */
-    async createCurrencyGateway(name: string, currency: string, wallet: Wallet, tag?: number) {
+    async createCurrencyGateway(name: string, currency: string, wallet: Wallet, tag?: number, opts?: {noinit: boolean }) {
         let cia = await new CurrencyIssuerAccount({
             api: this.api, name: name, tag: tag, wallet: wallet, currency: currency
         })
-        return await cia.init(this.api) as CurrencyIssuerAccount
+        return await this.internalInit(cia,opts) as unknown as CurrencyIssuerAccount
     }
 
     /**
@@ -229,10 +244,10 @@ export class AccountFactory extends AccountBase {
      * @param wallet
      * @param tag
      */
-    async createCurrencyIssuerAccount(name: string, cur: string, wallet: Wallet, tag?: number) {
+    async createCurrencyIssuerAccount(name: string, cur: string, wallet: Wallet, tag?: number, opts?: {noinit: boolean }) {
         let cia = await new CurrencyIssuerAccount({
             api: this.api, name: name, tag: tag, wallet: wallet, currency: cur
         })
-        return await cia.init(this.api) as CurrencyIssuerAccount
+        return await this.internalInit(cia,opts) as unknown as CurrencyIssuerAccount
     }
 }

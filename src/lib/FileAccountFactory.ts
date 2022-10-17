@@ -1,13 +1,20 @@
 import {AccountFactory, AccountFactoryProps, AccountOptions, WalletOptions} from "./AccountFactory";
 import {constants as FsConstants, promises as fs} from "fs";
 import {Account} from "./Account";
-import {log} from "./Logger";
-import {Wallet} from "./Wallet";
+import {Wallet, WalletJSON} from "./Wallet";
 import {PassiveAccount} from "./PassiveAccount";
 import {Wallet as XrpWallet} from "xrpl";
 
 export interface FileAccountFactoryProps extends AccountFactoryProps {
     defaultAccountDirectory?: string
+}
+
+/**
+ * This object represents the Account.
+ */
+export type AccountJSON = {
+    name: string
+    wallet: WalletJSON
 }
 
 /**
@@ -25,6 +32,22 @@ export class FileAccountFactory extends AccountFactory {
         }
     }
 
+
+    async ensureDefaultAccountDirectory() {
+        try {
+            let stat = await fs.stat(this.defaultAccountDirectory)
+        } catch (error) {
+            await fs.mkdir(this.defaultAccountDirectory, {recursive: true})
+        }
+    }
+
+    getAccountJSON(account: PassiveAccount | Account) : AccountJSON {
+        return {
+            name: account.name,
+            wallet: account.wallet.toJSON()
+        }
+    }
+
     /**
      * This function writes an account to a file. It contains the following JSON:
      *         {
@@ -39,14 +62,7 @@ export class FileAccountFactory extends AccountFactory {
      * @param account
      */
     async writeToFile(file: string, account: PassiveAccount | Account): Promise<PassiveAccount | Account> {
-        let accountJSON = {
-            name: account.name,
-            wallet: {
-                publicKey: account.wallet.publicKey,
-                privateKey: account.wallet.privateKey,
-                classicAddress: account.wallet.classicAddress
-            }
-        }
+        let accountJSON = this.getAccountJSON(account)
         return fs.writeFile(file, JSON.stringify(accountJSON, null, 2)).then(() => account)
     }
 
@@ -54,25 +70,27 @@ export class FileAccountFactory extends AccountFactory {
      * This method reads a specified file and returns an ActiveAccount, which has signing ability,
      * or a PassiveAccount, which is without signing ability.
      * @param file
+     * @param opts
      */
-    async readFromFile(file: string): Promise<Account | PassiveAccount> {
+    async readFromFile(file: string, opts?: {noinit: boolean}): Promise<Account | PassiveAccount> {
         return fs.readFile(file)
             .then(buf => JSON.parse(buf.toString()) as AccountOptions)
-            .then(obj => {
-                let wallet = obj.wallet as WalletOptions
-                let xrpWallet = wallet.familySeed !== undefined ?
-                    XrpWallet.fromSeed(wallet.familySeed) :
-                    new XrpWallet(wallet.publicKey!, wallet.privateKey!, {masterAddress: wallet.classicAddress})
-                let w = new Wallet(xrpWallet)
-                if (w.privateKey === "bogus") {
-                    return this.createPassiveAccount(obj.name, w, obj.tag)
-                } else {
-                    return this.createAccount(obj.name, w, obj.tag)
-                }
-            })
+            .then(obj => this.getAccountFromOptions(obj,opts))
     }
 
 
+    async getAccountFromOptions(json: AccountOptions, opts?: {noinit: boolean}) {
+        let wallet = json.wallet as WalletOptions
+        let xrpWallet = wallet.familySeed !== undefined ?
+            XrpWallet.fromSeed(wallet.familySeed) :
+            new XrpWallet(wallet.publicKey!, wallet.privateKey!, {masterAddress: wallet.classicAddress})
+        let w = new Wallet(xrpWallet)
+        if (w.privateKey === "bogus") {
+            return this.createPassiveAccount(json.name, w, json.tag, opts)
+        } else {
+            return this.createAccount(json.name, w, json.tag, opts)
+        }
+    }
     async getAccount(name: string, directory = this.defaultAccountDirectory) {
         let fileName = directory != "" ? `${directory}/${name}.json` : `${name}.json`
         await fs.access(fileName, FsConstants.R_OK)
