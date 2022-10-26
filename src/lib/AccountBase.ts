@@ -1,13 +1,7 @@
-import {log} from "./Logger"
-
 /**
  * This class is the base of all accounts, which contains some common useful functions.
  */
 export class AccountBase {
-    log<T>(obj: T): T {
-        return log(obj)
-    }
-
     /**
      * This option is a promise that delays. It calls setTimeout to resolve something later.
      * It is effectively a sleep call.

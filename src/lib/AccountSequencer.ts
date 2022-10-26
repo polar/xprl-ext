@@ -28,10 +28,8 @@ export class AccountSequencer extends AccountBase {
     }
 
     reset() {
-        let cmd = {command: "account_info", account: this.wallet.address}
-        this.log(cmd)
         return this.api!.request({command: "account_info", account: this.wallet.address})
-            .then(info => this.log(info))
+            //.then(info => this.log(info))
             .then(info => this.sequence = info.result.account_data.Sequence)
     }
 

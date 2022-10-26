@@ -1,5 +1,4 @@
-import {OfferCreate, Transaction, TransactionMetadata, TransactionStream, TxResponse} from "xrpl";
-import {log} from "./Logger";
+import {OfferCreate, TransactionMetadata, TransactionStream} from "xrpl";
 import {BookOffer} from "xrpl/dist/npm/models/methods/bookOffers";
 import {Node} from "xrpl/dist/npm/models/transactions/metadata";
 import {Account} from "./Account";
@@ -111,7 +110,6 @@ class BookOffers {
     removeOffer(accountOrOffer: OfferLike | OfferResult | string, sequence?: number) {
         if (sequence && typeof accountOrOffer === "string") {
             const key = `${accountOrOffer as string}:${sequence!}`
-            let offer = this.offers.get(key)
             this.offers.delete(key)
         } else if (accountOrOffer instanceof OfferResult) {
             let orig = (accountOrOffer as OfferResult).originalOffer?.transaction as OfferCreate
@@ -130,7 +128,6 @@ class BookOffers {
             }
         } else {
             let key = BookOffers.key(accountOrOffer as OfferLike)
-            let offer = this.offers.get(BookOffers.key(accountOrOffer as OfferLike))
             this.offers.delete(key)
         }
     }
@@ -166,10 +163,13 @@ class BookOffers {
  *     let offer = response.result
  *     tp.addOffer(offer)
  *     acct.api.on("transaction", (event) => tp.processTransactionStream(event))
- *     acct.api.request({command: "subscribe", addresses: [acct.address]}
+ *     await acct.api.request({command: "subscribe", addresses: [acct.address]}
  *
  *     // wait until processed by whatever means
  *     let result = tp.getOffer(offer)  // or tp.getOffer(acct.address, sequence)
+ *     // or use a function and get the result from the tp.processTransactionStream.
+ *     acct.api.on("transaction", (event) => tp.processTransactionStream(event)
+ *                                               .then(result => ....))
  *     ...
  *     // Prevent memory leak and clean up.
  *     if (result.deleted)
@@ -273,6 +273,7 @@ export class TransactionProcessor {
                 result.curDiff = xs.reduce((a, t) =>
                         a.add(this.getCurrencyDiff(address!,t)), RationalNumber.zero)
             }
+            return result
         }
     }
 
@@ -281,9 +282,11 @@ export class TransactionProcessor {
         let offerCreate = offerCreateAndMeta.transaction
         let bsp = this.offers.getOffer(offerCreate)
         if (!bsp) {
-            bsp = this.offers.internalAddOffer(offerCreateAndMeta)
+            this.offers.internalAddOffer(offerCreateAndMeta)
+        } else {
+            bsp.transactions.push(offerCreateAndMeta);
         }
-        log({processOfferCreate: offerCreateAndMeta})
+        //log({processOfferCreate: offerCreateAndMeta})
         this.processCreatedNodes(affectedNodes, offerCreateAndMeta);
 
         // The real work is in the AffectedNodes
@@ -299,9 +302,10 @@ export class TransactionProcessor {
         }
     }
 
-    private sameOffer(offer1: OfferLike, offer2: OfferLike) {
-        return offer1.Account === offer2.Account && offer1.Sequence === offer2.Sequence
-    }
+    // // @ts-ignore
+    // private sameOffer(offer1: OfferLike, offer2: OfferLike) {
+    //     return offer1.Account === offer2.Account && offer1.Sequence === offer2.Sequence
+    // }
 
     private processCreatedNodes(affectedNodes: Node[], event: OfferCreateAndMetaData) {
         let createdOffers = affectedNodes
@@ -316,7 +320,7 @@ export class TransactionProcessor {
             .filter((an) => "DeletedNode" in an && an.DeletedNode.LedgerEntryType === "Offer")
             .map(d => "DeletedNode" in d && d.DeletedNode.FinalFields as unknown as BookOffer)
             .filter(n => n && this.addresses.some(addr => addr === n.Account))
-        log({message: "Deleted Offers Count", count: deletedOffers.length})
+        //log({message: "Deleted Offers Count", count: deletedOffers.length})
         for (const offer of deletedOffers) {
             this.processDeletedOffer(offer as BookOffer, event)
         }
@@ -337,7 +341,7 @@ export class TransactionProcessor {
             .filter((an) => "ModifiedNode" in an && an.ModifiedNode.LedgerEntryType === "Offer")
             .map(d => "ModifiedNode" in d && d.ModifiedNode.FinalFields as unknown as BookOffer)
             .filter(n => n && this.addresses.some(a => a === n.Account))
-        log({message: "Own Modified Offers Count", count: ownModifiedOffers.length})
+        //log({message: "Own Modified Offers Count", count: ownModifiedOffers.length})
         for (const offer of ownModifiedOffers) {
             let result = this.processOffer(offer as BookOffer, event)
             if (result)
@@ -350,13 +354,13 @@ export class TransactionProcessor {
             .filter((an) => "ModifiedNode" in an && an.ModifiedNode.LedgerEntryType === "Offer")
             .map(d => "ModifiedNode" in d && d.ModifiedNode.FinalFields as unknown as BookOffer)
             .filter(n => n && this.addresses.every(a => a !== n.Account))
-        log({message: "Other Modified Offers Count", count: otherModifiedOffers.length})
+        //log({message: "Other Modified Offers Count", count: otherModifiedOffers.length})
         if (otherModifiedOffers.length > 0) {
             this.processOtherOffer(event)
         }
     }
 
-    private processOffer(offer: OfferLike, event: OfferCreateAndMetaData)  : OfferResult | undefined {
+    private processOffer(offer: OfferLike, _event: OfferCreateAndMetaData)  : OfferResult | undefined {
         let bsp = this.offers.getOffer(offer)
         if (bsp) {
             return bsp
@@ -381,7 +385,7 @@ export class TransactionProcessor {
      * @param event
      */
     processTransactionStream(event: TransactionStream | OfferCreateAndMetaData) {
-        log({PROCESS_TRANSACTION_STREAM: event.transaction.Sequence})
+        //log({PROCESS_TRANSACTION_STREAM: event.transaction.Sequence})
         let affectedNodes = event.meta?.AffectedNodes
         if (event.transaction.TransactionType === "OfferCreate" && affectedNodes) {
             let offerCreate = event.transaction as OfferCreate
@@ -389,7 +393,7 @@ export class TransactionProcessor {
                 transaction: offerCreate,
                 meta: event.meta!
             }
-            this.processOfferCreate(offerCreateAndMeta)
+            return this.processOfferCreate(offerCreateAndMeta)
         }
         if (event.transaction.TransactionType === "OfferCancel") {
             let bsp = this.offers.getOffer(event.transaction.Account, event.transaction.OfferSequence)
@@ -411,11 +415,9 @@ export class TransactionProcessor {
                 let final = node.FinalFields as RippleState
                 let prev = node.PreviousFields as RippleState
                 let isEitherNegative = Rational(prev.Balance.value).lt(0) || Rational(final.Balance.value).lt(0)
-                let d = isEitherNegative ? diff(prev, final) : diff(final, prev)
-                return d // isSell() ? d : d.times(-1)
+                return isEitherNegative ? diff(prev, final) : diff(final, prev) // isSell() ? d : d.times(-1)
             } else if (node && "NewFields" in node) {
-                let d = Rational(node.NewFields.Balance.value)
-                return d //isSell() ? d : d.times(-1)
+                return Rational(node.NewFields.Balance.value) //isSell() ? d : d.times(-1)
             }
             return RationalNumber.zero
         }
@@ -440,12 +442,12 @@ export class TransactionProcessor {
                 )
             let rippleStates = modifiedRippleStates.concat(createdRippleStates)
             // Should only be one
-            log({
-                message: "RIPPLE_STATES_NUMBER is ",
-                created: createdRippleStates.length,
-                modified: modifiedRippleStates.length,
-                rippleStates: rippleStates.map(s => diffRippleStateBalance(s).toDecimal(15))
-            })
+            // log({
+            //     message: "RIPPLE_STATES_NUMBER is ",
+            //     created: createdRippleStates.length,
+            //     modified: modifiedRippleStates.length,
+            //     rippleStates: rippleStates.map(s => diffRippleStateBalance(s).toDecimal(15))
+            // })
             return rippleStates.reduce((a, s) => a.add(diffRippleStateBalance(s)), RationalNumber.zero)
         }
         return RationalNumber.zero
@@ -463,7 +465,6 @@ export class TransactionProcessor {
             if (node && "FinalFields" in node && "PreviousFields" in node) {
                 let final = node.FinalFields as AccountRoot
                 let prev = node.PreviousFields as AccountRoot
-                let result = diff(final, prev).valueOf()
                 return diff(final, prev)
             }
             return RationalNumber.zero

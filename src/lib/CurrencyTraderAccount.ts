@@ -8,10 +8,6 @@ import {Rational, RationalNumber} from "./Rational";
 import {CurrencyTraderPassiveAccount} from "./CurrencyTraderPassiveAccount";
 import {TraderAccountProps} from "./TraderAccountProps";
 
-function roundToPrecision(amt: number, prec: number = 1e6) {
-    return Math.round(amt * prec) / prec
-}
-
 export class CurrencyTraderAccount extends Account implements CurrencyTrader {
 
     currencyIssuer: CurrencyIssuer
@@ -153,7 +149,7 @@ export class CurrencyTraderAccount extends Account implements CurrencyTrader {
         let self = this
         return this.getAsks()
             .then(bookResp => bookResp.result.offers)
-            .then(res => self.log(res))
+            //.then(res => self.log(res))
             .then(offers => offers.filter(offer => offer.Account === self.wallet.address))
             .then(offers => {
                 let ps = offers.map(offer => self.txCancelOffer(offer.Sequence, fee))
@@ -166,7 +162,7 @@ export class CurrencyTraderAccount extends Account implements CurrencyTrader {
         let self = this
         return this.getAsks()
             .then(bookResp => bookResp.result.offers)
-            .then(res => self.log(res))
+            //.then(res => self.log(res))
             .then(offers => offers.filter(offer => offer.Account === self.wallet.address))
             .then(offers => {
                 let ps = offers.map(offer => self.txCancelOffer(offer.Sequence, fee))

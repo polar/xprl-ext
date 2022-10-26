@@ -184,7 +184,7 @@ export class Account extends PassiveAccount implements AccountI {
         return this.until<SubmitResponse>(async () => {
             transaction.Sequence = this.sequencer.useNext()
             return this.api!.submit(transaction, {wallet: this.wallet})
-                .then(res => this.log(res))
+                //.then(res => this.log(res))
                 .then(submitResponse => {
                     return submitResponse.result.engine_result === "tesSUCCESS" ?
                         submitResponse :
@@ -225,9 +225,9 @@ export class Account extends PassiveAccount implements AccountI {
                                 transaction: submitResponse.result.tx_json.hash
                             }
                         ))
-                        .then(res => this.log(res as TxResponse)),
+                        .then(res => res as TxResponse),
                 (tx) => tx!.result.validated, limit))
-            .then(res => this.log(res))
+            //.then(res => this.log(res))
     }
 
     /**
@@ -264,11 +264,43 @@ export class Account extends PassiveAccount implements AccountI {
      * @param limit
      */
     submitSequenceAndWait3(transactions: Transaction[], time?: number, limit?: number): Promise<TxResponse[]> {
-        this.log({submitSequenceAndWait3: transactions.length})
+        //this.log({submitSequenceAndWait3: transactions.length})
         return transactions.reduce((accResponses, tx) =>
                 accResponses.then(txs =>
                     this.submitTransactionAndWait3(tx, time, limit).then(txr => txs.concat([txr]))),
             Promise.resolve([] as TxResponse[]))
+    }
+
+    wait(resp: SubmitResponse, time: number = 10000, limit: number = -1): Promise<TxResponse> {
+        if (resp.result.engine_result === "tesSUCCESS" || resp.result.engine_result === "terQUEUED") {
+            return this.until(async () =>
+                    this.later(time)
+                        .then(() => this.api!.request({
+                                command: "tx",
+                                transaction: resp.result.tx_json.hash
+                            }
+                        )),
+                (tx) => tx!.result.validated, limit)
+        } else {
+            return Promise.reject(resp)
+        }
+    }
+
+    wait3(resp: SubmitResponse, time: number = 10000, limit: number = -1): Promise<TxResponse> {
+        if (resp.result.engine_result === "tesSUCCESS" || resp.result.engine_result === "terQUEUED") {
+            return this.until(async () =>
+
+                    this.later(time)
+                        .then(() => this.api!.request({
+                                command: "tx",
+                                transaction: resp.result.tx_json.hash
+                            }
+                        ))
+                        .then(res => res as TxResponse),
+                (tx) => tx!.result.validated, limit)
+        } else {
+            return Promise.reject(resp)
+        }
     }
 
     /**
