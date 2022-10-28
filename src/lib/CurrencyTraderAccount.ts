@@ -35,6 +35,14 @@ export class CurrencyTraderAccount extends Account implements CurrencyTrader {
             fee)
     }
 
+    txBuyXrp(drops: number | string | RationalNumber, amount: number | string | RationalNumber, flags?: number, fee?: string) {
+        return this.txBid(drops, amount, flags, fee)
+    }
+
+    txSellXrp(drops: number | string | RationalNumber, amount: number | string | RationalNumber, flags?: number, fee?: string) {
+        return this.txAsk(drops, amount, flags, fee)
+    }
+
     txAsk(drops: number | string | RationalNumber, amount: number | string | RationalNumber, flags?: number, fee?: string) {
         return this.txFactory.txOffer(
             this.wallet.address,

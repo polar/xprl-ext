@@ -44,7 +44,7 @@ export class Account extends PassiveAccount implements AccountI {
         return this.sequencer.init(this.api).then(() => this)
     }
 
-    private txOffer(in_amt: Amount | string, out_amt: Amount | string, flags?: number, fee?: string) {
+    txOffer(in_amt: Amount | string, out_amt: Amount | string, flags?: number, fee?: string) {
         return this.txFactory.txOffer(
             this.wallet.address,
             out_amt, // Taker gets  (out_amt: I pay)
