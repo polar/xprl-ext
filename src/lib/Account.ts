@@ -476,7 +476,7 @@ export class Account extends PassiveAccount implements AccountI {
      * @param drops
      * @param objects
      */
-    isFundedDrops(drops: number, objects: number) {
+    isFundedDrops(drops: number, objects = 0) {
         return this.api!.request({command: "server_info", account: this.wallet.address})
             .then(server_info =>
                 this.api!.request({command: "account_info", account: this.wallet.address})

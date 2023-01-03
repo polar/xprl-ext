@@ -4,7 +4,7 @@ import {CurrencyIssuer} from "./CurrencyIssuer";
 import {CurrencyTrader} from "./CurrencyTrader";
 import {PassiveAccountI} from "./PassiveAccountI";
 import {Spread} from "./Spread";
-import {Rational, RationalNumber} from "./Rational";
+import {Rational, RationalNumber} from "rational";
 import {CurrencyTraderPassiveAccount} from "./CurrencyTraderPassiveAccount";
 import {TraderAccountProps} from "./TraderAccountProps";
 

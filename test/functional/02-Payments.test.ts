@@ -2,7 +2,7 @@ import {Client} from "xrpl";
 import {TestingAccountFactory} from "../support/TestingAccountFactory";
 import {Account} from "../../src/lib/Account";
 import {XRPCurrencyIssuer} from "../../src/lib/XRPCurrencyIssuer";
-import {Rational} from "../../src/lib/Rational";
+import {Rational} from "rational";
 import {CurrencyIssuerAccount} from "../../src/lib/CurrencyIssuerAccount";
 
 jest.setTimeout(1000000000)

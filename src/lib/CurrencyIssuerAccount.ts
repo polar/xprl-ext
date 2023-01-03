@@ -4,7 +4,7 @@ import {CurrencyIssuer} from "./CurrencyIssuer";
 import {CurrencyIssuerPassiveAccount} from "./CurrencyIssuerPassiveAccount";
 import {Amount, IssuedCurrencyAmount} from "xrpl/dist/npm/models/common";
 
-import {Rational, RationalNumber} from "./Rational"
+import {Rational, RationalNumber} from "rational"
 
 export class CurrencyIssuerAccount extends Account implements CurrencyIssuer {
     currency: string

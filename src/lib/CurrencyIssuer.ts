@@ -1,6 +1,6 @@
 import {Amount, Currency} from "xrpl/dist/npm/models/common";
 import {TakerAmount} from "xrpl/dist/npm/models/methods/bookOffers";
-import {RationalNumber} from "./Rational";
+import {RationalNumber} from "rational";
 
 
 export interface CurrencyIssuer {

@@ -2,7 +2,7 @@ import {PassiveAccount} from "./PassiveAccount";
 import {CurrencyIssuer} from "./CurrencyIssuer";
 import {CurrencyIssuerAccountProps} from "./CurrencyIssuerAccountProps";
 import {Amount, IssuedCurrencyAmount} from "xrpl/dist/npm/models/common";
-import {Rational, RationalNumber} from "./Rational"
+import {Rational, RationalNumber} from "rational"
 
 export class CurrencyIssuerPassiveAccount extends PassiveAccount implements CurrencyIssuer {
     currency: string

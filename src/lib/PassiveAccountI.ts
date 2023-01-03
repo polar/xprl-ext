@@ -3,7 +3,7 @@ import {AccountSequencer} from "./AccountSequencer";
 import {TransactionFactory} from "./TransactionFactory";
 import {CurrencyIssuer} from "./CurrencyIssuer";
 import {BookOrders} from "./PassiveAccount";
-import {Rational, RationalNumber} from "./Rational"
+import {Rational, RationalNumber} from "rational"
 
 /**
  * This interface just holds the XRP currency attribute.

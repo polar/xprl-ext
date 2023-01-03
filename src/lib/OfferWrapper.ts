@@ -2,7 +2,7 @@ import {BookOffer} from "xrpl/dist/npm/models/methods/bookOffers";
 import {OfferCreate, OfferCreateFlags} from "xrpl";
 import {IssuedCurrencyAmount} from "./PassiveAccountI";
 import {sprintf} from "sprintf-js";
-import {Rational, RationalNumber} from "./Rational";
+import {Rational, RationalNumber} from "rational";
 
 export type OfferCrossResult = {
     type: string,

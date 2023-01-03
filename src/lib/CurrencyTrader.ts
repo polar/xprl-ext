@@ -1,7 +1,7 @@
 import {BookOffersResponse, SubmitResponse, TxResponse} from "xrpl";
 import {AccountI} from "./AccountI";
 import {PassiveAccountI} from "./PassiveAccountI";
-import {RationalNumber} from "./Rational";
+import {RationalNumber} from "rational";
 import {CurrencyIssuer} from "./CurrencyIssuer";
 
 export interface CurrencyTraderPassive extends PassiveAccountI {

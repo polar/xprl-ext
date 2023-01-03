@@ -1,6 +1,6 @@
 import {CurrencyIssuer} from "./CurrencyIssuer";
 import {Currency} from "xrpl/dist/npm/models/common";
-import {Rational, RationalNumber} from "./Rational";
+import {Rational, RationalNumber} from "rational";
 
 
 export class XRPCurrencyIssuer implements CurrencyIssuer {

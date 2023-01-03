@@ -1,6 +1,6 @@
 import {IssuedCurrencyAmount} from "xrpl/dist/npm/models/common";
 
-import {Rational, RationalNumber} from "./Rational"
+import {Rational, RationalNumber} from "rational"
 
 export class Spread {
     _bid?: RationalNumber

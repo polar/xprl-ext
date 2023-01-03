@@ -4,7 +4,7 @@ import {CurrencyIssuer} from "../../src/lib/CurrencyIssuer";
 import {WalletFactory} from "../../src/lib/WalletFactory";
 import {log} from "../../src/lib/Logger";
 import {CurrencyIssuerAccount} from "../../src/lib/CurrencyIssuerAccount";
-import {Rational, RationalNumber} from "../../src/lib/Rational";
+import {Rational, RationalNumber} from "rational";
 import {XRPCurrencyIssuer} from "../../src/lib/XRPCurrencyIssuer";
 import {FileAccountFactory, FileAccountFactoryProps} from "../../src/lib/FileAccountFactory";
 import {IssuedCurrencyAmount} from "xrpl/dist/npm/models/common";

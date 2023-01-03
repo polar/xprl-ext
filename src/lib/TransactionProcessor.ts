@@ -2,7 +2,7 @@ import {OfferCreate, TransactionMetadata, TransactionStream} from "xrpl";
 import {BookOffer} from "xrpl/dist/npm/models/methods/bookOffers";
 import {Node} from "xrpl/dist/npm/models/transactions/metadata";
 import {Account} from "./Account";
-import {Rational, RationalNumber} from "./Rational";
+import {Rational, RationalNumber} from "rational";
 import {AccountRoot, RippleState} from "xrpl/dist/npm/models/ledger";
 
 export type OfferCreateAndMetaData = {
